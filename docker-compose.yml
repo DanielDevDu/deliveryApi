@@ -1,0 +1,24 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:14
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    networks:
+      - delivery
+    env_file:
+      - .env
+
+networks:
+  delivery:
+    driver: bridge
+
+volumes:
+  postgres_data:
