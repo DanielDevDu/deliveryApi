@@ -96,7 +96,7 @@ async def get_order(order_id: int, Authorize:AuthJWT=Depends()):
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You don't have permission to access this order")
 
 # Get all orders for the current user
-@order_router.get("/user/myorders")
+@order_router.get("/user/orders")
 async def get_my_orders(Authorize:AuthJWT=Depends()):
     print("adasdasdsadsadasdasdsa")
 
@@ -118,3 +118,28 @@ async def get_my_orders(Authorize:AuthJWT=Depends()):
         })
 
     return jsonable_encoder(response)
+
+# Get a single order for the current user
+@order_router.get("/user/order/{order_id}")
+async def get_my_order(order_id: int, Authorize:AuthJWT=Depends()):
+    try:
+        Authorize.jwt_required()
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token [UnAuthorized]")
+
+    current_user = Authorize.get_jwt_subject()
+    user = session.query(User).filter(User.username == current_user).first()
+    orders = user.orders
+    
+    for order in orders:
+        if order.id == order_id:
+            response = {
+                "order_id": order.id,
+                "quantity": order.quantity,
+                "order_status": order.order_status.code,
+                "pizza_size": order.pizza_size.code,
+                "user_id": order.user_id
+            }
+            return jsonable_encoder(response)
+    
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not order found for this user")
