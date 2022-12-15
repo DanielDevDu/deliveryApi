@@ -7,6 +7,25 @@ import environ
 env = environ.Env(DEBUG=(bool, False))
 environ.Env.read_env(".env")
 
+class ShowUser(BaseModel):
+    id:Optional[int]
+    username:str
+    email:str
+    is_staff:Optional[bool]
+    is_active:Optional[bool]
+
+
+    class Config:
+        orm_mode=True
+        schema_extra={
+            'example':{
+                "username":"johndoe",
+                "email":"johndoe@gmail.com",
+                "is_staff":False,
+                "is_active":True
+            }
+        }
+
 class SignUpModel(BaseModel):
     id:Optional[int]
     username:str

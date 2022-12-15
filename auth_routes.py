@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from database import Session, engine
-from schemas import SignUpModel, LoginModel
+from schemas import SignUpModel, LoginModel, ShowUser
 from models import User
 from werkzeug.security import generate_password_hash, check_password_hash
 from fastapi_jwt_auth import AuthJWT
@@ -14,7 +14,7 @@ auth_router = APIRouter(
 session = Session(bind=engine)
 
 
-@auth_router.get("/")
+@auth_router.get("/all")
 async def auth(Authorize:AuthJWT=Depends()):
     try:
         Authorize.jwt_required()
@@ -22,7 +22,16 @@ async def auth(Authorize:AuthJWT=Depends()):
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token [UnAuthorized]")
     
-    return jsonable_encoder(all_users)
+    response = []
+    for user in all_users:
+        response.append({
+            "username": user.username,
+            "email": user.email,
+            "is_staff": user.is_staff,
+            "is_active": user.is_active
+        })
+
+    return jsonable_encoder(response)
 
 
 @auth_router.post(
