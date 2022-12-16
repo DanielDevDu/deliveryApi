@@ -61,8 +61,8 @@ class LoginModel(BaseModel):
 class OrderModel(BaseModel):
     id:Optional[int]
     quantity:int
-    order_status:Optional[str]="PENDING"
-    pizza_size:Optional[str]="SMALL"
+    order_status:Optional[str]
+    pizza_size:Optional[str]
     user_id:Optional[int]
 
 
@@ -77,7 +77,7 @@ class OrderModel(BaseModel):
 
 
 class OrderStatusModel(BaseModel):
-    order_status:Optional[str]="PENDING"
+    order_status:Optional[str]
 
     class Config:
         orm_mode=True

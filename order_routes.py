@@ -143,3 +143,45 @@ async def get_my_order(order_id: int, Authorize:AuthJWT=Depends()):
             return jsonable_encoder(response)
     
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not order found for this user")
+
+# Update an order by id
+@order_router.patch("/order/update/{order_id}")
+async def patch_order(update_order: OrderModel, order_id:int, Authorize:AuthJWT=Depends()):
+    try:
+        Authorize.jwt_required()
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token [UnAuthorized]")
+    
+    current_user = Authorize.get_jwt_subject()
+    user = session.query(User).filter(User.username == current_user).first()
+    order = session.query(Order).filter(Order.id == order_id).first()
+
+    if order is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+
+    if order.user_id == user.id:
+        # update order (Just Quantity and Pizza Size Only if the order is pending)
+        if order.order_status == "PENDING":
+            if update_order.quantity is not None:
+                order.quantity = update_order.quantity
+            if update_order.pizza_size is not None:
+                order.pizza_size = update_order.pizza_size
+        else:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You can't update this order becouse it's not pending")
+
+        session.commit()
+    
+        response = {
+            "order_id": order.id,
+            "quantity": order.quantity,
+            "order_status": order.order_status.code,
+            "pizza_size": order.pizza_size.code,
+            "user_id": order.user_id
+        }
+        return jsonable_encoder(response)
+    
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You don't have permission to access this order")
+
+#
+
+
