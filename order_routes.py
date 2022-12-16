@@ -15,6 +15,12 @@ session = Session(bind=engine)
 
 @order_router.get("/all", status_code=status.HTTP_200_OK)
 async def order(Authorize:AuthJWT=Depends()):
+    """
+        ## Get all orders
+        Return a list of all orders
+        Only superuser can access this route
+    """
+
     try:
         Authorize.jwt_required()
     except Exception as e:
@@ -41,6 +47,13 @@ async def order(Authorize:AuthJWT=Depends()):
 # create orders
 @order_router.post("/order", status_code=status.HTTP_201_CREATED)
 async def create_order(order: OrderModel, Authorize:AuthJWT=Depends()):
+    """
+        ## Create new order
+        Any user can create new order with
+        body:
+            - quantity: int
+            - pizza_size: str
+    """
     try:
         Authorize.jwt_required()
     except Exception as e:
@@ -72,6 +85,13 @@ async def create_order(order: OrderModel, Authorize:AuthJWT=Depends()):
 # Get One Order by ID
 @order_router.get("/{order_id}", status_code=status.HTTP_200_OK)
 async def get_order(order_id: int, Authorize:AuthJWT=Depends()):
+    """
+        ## Get order by ID
+        Return a single order
+        - On Route:
+            - order_id: int
+    """
+
     try:
         Authorize.jwt_required()
     except Exception as e:
@@ -98,7 +118,10 @@ async def get_order(order_id: int, Authorize:AuthJWT=Depends()):
 # Get all orders for the current user
 @order_router.get("/user/orders", status_code=status.HTTP_200_OK)
 async def get_my_orders(Authorize:AuthJWT=Depends()):
-    print("adasdasdsadsadasdasdsa")
+    """
+        ## Get all orders for the current user
+        Return a list of all orders
+    """
 
     try:
         Authorize.jwt_required()
@@ -122,6 +145,12 @@ async def get_my_orders(Authorize:AuthJWT=Depends()):
 # Get a single order for the current user
 @order_router.get("/user/order/{order_id}", status_code=status.HTTP_200_OK)
 async def get_my_order(order_id: int, Authorize:AuthJWT=Depends()):
+    """
+        ## Get a single order for the current user
+        - On Route:
+            - order_id: int
+    """
+
     try:
         Authorize.jwt_required()
     except Exception as e:
@@ -147,6 +176,15 @@ async def get_my_order(order_id: int, Authorize:AuthJWT=Depends()):
 # Update an order by id
 @order_router.patch("/order/update/{order_id}", status_code=status.HTTP_202_ACCEPTED)
 async def patch_order(update_order: UpdateOrderModel, order_id:int, Authorize:AuthJWT=Depends()):
+    """
+        ## Update an order by id
+        You can only update the order if its status is pending
+        - On route:
+            - order_id: int
+        - Body: UpdateOrderModel
+            - quantity: int
+            - pizza_size: str
+    """
     try:
         Authorize.jwt_required()
     except Exception as e:
@@ -185,6 +223,14 @@ async def patch_order(update_order: UpdateOrderModel, order_id:int, Authorize:Au
 # Update Order status by id
 @order_router.put("/order/status/{order_id}", status_code=status.HTTP_200_OK)
 async def put_order_status(update_order: OrderStatusModel, order_id:int, Authorize:AuthJWT=Depends()):
+    """
+        ## Update Order status by id
+        Only staff can update order status
+        - On route:
+            - order_id: int
+        - Body: OrderStatusModel
+            - order_status: str
+    """
     try:
         Authorize.jwt_required()
     except Exception as e:
@@ -212,6 +258,13 @@ async def put_order_status(update_order: OrderStatusModel, order_id:int, Authori
 # Delete an order by id
 @order_router.delete("/order/delete/{order_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_order(order_id:int, Authorize:AuthJWT=Depends()):
+    """
+        ## Delete an order by id
+        You can only delete the order if its status is pending
+        - On route:
+            - order_id: int
+    """
+
     try:
         Authorize.jwt_required()
     except Exception as e:

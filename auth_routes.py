@@ -16,9 +16,13 @@ session = Session(bind=engine)
 
 @auth_router.get("/all", status_code=status.HTTP_200_OK)
 async def auth(Authorize:AuthJWT=Depends()):
+    """
+        ## Get all users
+        ### Return a list of all users
+        Only superuser can access this route
+    """
     try:
         Authorize.jwt_required()
-        all_users = session.query(User).all()
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token [UnAuthorized]")
     
@@ -27,6 +31,8 @@ async def auth(Authorize:AuthJWT=Depends()):
 
     if user.is_staff:
         response = []
+        all_users = session.query(User).all()
+
         for user in all_users:
             response.append({
                 "id": user.id,
@@ -38,7 +44,7 @@ async def auth(Authorize:AuthJWT=Depends()):
 
         return jsonable_encoder(response)
     
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You are not Superuser")
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You are not Superuser", headers={"WWW-Authenticate": "Bearer"}) 
 
 
 @auth_router.post(
@@ -47,6 +53,15 @@ async def auth(Authorize:AuthJWT=Depends()):
     status_code=status.HTTP_201_CREATED
 )
 async def signup(user: SignUpModel):
+    """
+        ## Create new user
+        Any user can create new user with
+        - username: str
+        - email: str
+        - password: str
+        - is_staff: bool
+        - is_active: bool
+    """
     db_email = session.query(User).filter(User.email == user.email).first()
 
     if db_email is not None:
@@ -73,6 +88,11 @@ async def signup(user: SignUpModel):
 # Login route
 @auth_router.post("/login", status_code=status.HTTP_200_OK)
 async def login(user: LoginModel, Authorize:AuthJWT=Depends()):
+    """
+        ## Login user
+        - username: str
+        - password: str
+    """
     db_user = session.query(User).filter(User.username == user.username).first()
 
     if db_user is None:
@@ -97,6 +117,10 @@ async def login(user: LoginModel, Authorize:AuthJWT=Depends()):
 # Refresh token route
 @auth_router.post("/refresh", status_code=status.HTTP_200_OK)
 async def refresh(Authorize:AuthJWT=Depends()):
+    """
+        ## Refresh token
+        Return new access token
+    """
     try:
         Authorize.jwt_refresh_token_required()
         current_user = Authorize.get_jwt_subject()
