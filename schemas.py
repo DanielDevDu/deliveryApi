@@ -75,6 +75,19 @@ class OrderModel(BaseModel):
             }
         }
 
+class UpdateOrderModel(BaseModel):
+    quantity:Optional[int]
+    pizza_size:Optional[str]
+
+    class Config:
+        orm_mode=True
+        schema_extra={
+            "example":{
+                "quantity":2,
+                "pizza_size":"LARGE"
+            }
+        }
+
 
 class OrderStatusModel(BaseModel):
     order_status:Optional[str]

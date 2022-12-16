@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from schemas import OrderModel, OrderStatusModel
+from schemas import OrderModel, OrderStatusModel, UpdateOrderModel
 from models import User, Order
 from werkzeug.security import generate_password_hash, check_password_hash
 from fastapi_jwt_auth import AuthJWT
@@ -13,7 +13,7 @@ order_router = APIRouter(
 
 session = Session(bind=engine)
 
-@order_router.get("/all")
+@order_router.get("/all", status_code=status.HTTP_200_OK)
 async def order(Authorize:AuthJWT=Depends()):
     try:
         Authorize.jwt_required()
@@ -70,7 +70,7 @@ async def create_order(order: OrderModel, Authorize:AuthJWT=Depends()):
     return jsonable_encoder(response)
 
 # Get One Order by ID
-@order_router.get("/{order_id}")
+@order_router.get("/{order_id}", status_code=status.HTTP_200_OK)
 async def get_order(order_id: int, Authorize:AuthJWT=Depends()):
     try:
         Authorize.jwt_required()
@@ -96,7 +96,7 @@ async def get_order(order_id: int, Authorize:AuthJWT=Depends()):
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You don't have permission to access this order")
 
 # Get all orders for the current user
-@order_router.get("/user/orders")
+@order_router.get("/user/orders", status_code=status.HTTP_200_OK)
 async def get_my_orders(Authorize:AuthJWT=Depends()):
     print("adasdasdsadsadasdasdsa")
 
@@ -120,7 +120,7 @@ async def get_my_orders(Authorize:AuthJWT=Depends()):
     return jsonable_encoder(response)
 
 # Get a single order for the current user
-@order_router.get("/user/order/{order_id}")
+@order_router.get("/user/order/{order_id}", status_code=status.HTTP_200_OK)
 async def get_my_order(order_id: int, Authorize:AuthJWT=Depends()):
     try:
         Authorize.jwt_required()
@@ -145,8 +145,8 @@ async def get_my_order(order_id: int, Authorize:AuthJWT=Depends()):
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not order found for this user")
 
 # Update an order by id
-@order_router.patch("/order/update/{order_id}")
-async def patch_order(update_order: OrderModel, order_id:int, Authorize:AuthJWT=Depends()):
+@order_router.patch("/order/update/{order_id}", status_code=status.HTTP_202_ACCEPTED)
+async def patch_order(update_order: UpdateOrderModel, order_id:int, Authorize:AuthJWT=Depends()):
     try:
         Authorize.jwt_required()
     except Exception as e:
@@ -180,10 +180,10 @@ async def patch_order(update_order: OrderModel, order_id:int, Authorize:AuthJWT=
         }
         return jsonable_encoder(response)
     
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You don't have permission to access this order")
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You don't have permission to update this order")
 
 # Update Order status by id
-@order_router.put("/order/status/{order_id}")
+@order_router.put("/order/status/{order_id}", status_code=status.HTTP_200_OK)
 async def put_order_status(update_order: OrderStatusModel, order_id:int, Authorize:AuthJWT=Depends()):
     try:
         Authorize.jwt_required()
@@ -192,24 +192,52 @@ async def put_order_status(update_order: OrderStatusModel, order_id:int, Authori
 
     current_user = Authorize.get_jwt_subject()
     user = session.query(User).filter(User.username == current_user).first()
-    order = session.query(Order).filter(Order.id == order_id).first()
-
-    if order is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     
     if user.is_staff:
+        order = session.query(Order).filter(Order.id == order_id).first()
+        if order is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+
         # update order status
         order.order_status = update_order.order_status
         session.commit()
     
         response = {
-            "order_id": order.id,
-            "quantity": order.quantity,
-            "order_status": order.order_status.code,
-            "pizza_size": order.pizza_size.code,
-            "user_id": order.user_id
+            "message": "Order status updated successfully",
         }
         return jsonable_encoder(response)
     
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You don't have permission to update status")
+
+# Delete an order by id
+@order_router.delete("/order/delete/{order_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_order(order_id:int, Authorize:AuthJWT=Depends()):
+    try:
+        Authorize.jwt_required()
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token [UnAuthorized]")
+    
+    current_user = Authorize.get_jwt_subject()
+    user = session.query(User).filter(User.username == current_user).first()
+
+    order = session.query(Order).filter(Order.id == order_id).first()
+
+    if order is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+
+    if order.user_id == user.id:
+        if order.order_status != "PENDING":
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You can't delete this order becouse is {}".format(order.order_status.code))
+
+        # delete order
+        session.delete(order)
+        session.commit()
+
+        response = {
+            "message": "Order deleted successfully",
+        }
+
+        return jsonable_encoder(response)
+    
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You don't have permission to delete this order")
 

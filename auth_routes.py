@@ -14,7 +14,7 @@ auth_router = APIRouter(
 session = Session(bind=engine)
 
 
-@auth_router.get("/all")
+@auth_router.get("/all", status_code=status.HTTP_200_OK)
 async def auth(Authorize:AuthJWT=Depends()):
     try:
         Authorize.jwt_required()
@@ -29,6 +29,7 @@ async def auth(Authorize:AuthJWT=Depends()):
         response = []
         for user in all_users:
             response.append({
+                "id": user.id,
                 "username": user.username,
                 "email": user.email,
                 "is_staff": user.is_staff,
@@ -70,7 +71,7 @@ async def signup(user: SignUpModel):
     return {"message": "User created successfully"}
 
 # Login route
-@auth_router.post("/login", status_code=200)
+@auth_router.post("/login", status_code=status.HTTP_200_OK)
 async def login(user: LoginModel, Authorize:AuthJWT=Depends()):
     db_user = session.query(User).filter(User.username == user.username).first()
 
@@ -94,7 +95,7 @@ async def login(user: LoginModel, Authorize:AuthJWT=Depends()):
     return jsonable_encoder(response)
 
 # Refresh token route
-@auth_router.post("/refresh", status_code=200)
+@auth_router.post("/refresh", status_code=status.HTTP_200_OK)
 async def refresh(Authorize:AuthJWT=Depends()):
     try:
         Authorize.jwt_refresh_token_required()
