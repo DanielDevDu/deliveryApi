@@ -22,16 +22,22 @@ async def auth(Authorize:AuthJWT=Depends()):
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token [UnAuthorized]")
     
-    response = []
-    for user in all_users:
-        response.append({
-            "username": user.username,
-            "email": user.email,
-            "is_staff": user.is_staff,
-            "is_active": user.is_active
-        })
+    current_user = Authorize.get_jwt_subject()
+    user = session.query(User).filter(User.username == current_user).first()
 
-    return jsonable_encoder(response)
+    if user.is_staff:
+        response = []
+        for user in all_users:
+            response.append({
+                "username": user.username,
+                "email": user.email,
+                "is_staff": user.is_staff,
+                "is_active": user.is_active
+            })
+
+        return jsonable_encoder(response)
+    
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You are not Superuser")
 
 
 @auth_router.post(

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from schemas import OrderModel
+from schemas import OrderModel, OrderStatusModel
 from models import User, Order
 from werkzeug.security import generate_password_hash, check_password_hash
 from fastapi_jwt_auth import AuthJWT
@@ -167,7 +167,7 @@ async def patch_order(update_order: OrderModel, order_id:int, Authorize:AuthJWT=
             if update_order.pizza_size is not None:
                 order.pizza_size = update_order.pizza_size
         else:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You can't update this order becouse it's not pending")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You can't update this order becouse is {}".format(order.order_status.code))
 
         session.commit()
     
@@ -182,6 +182,34 @@ async def patch_order(update_order: OrderModel, order_id:int, Authorize:AuthJWT=
     
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You don't have permission to access this order")
 
-#
+# Update Order status by id
+@order_router.put("/order/status/{order_id}")
+async def put_order_status(update_order: OrderStatusModel, order_id:int, Authorize:AuthJWT=Depends()):
+    try:
+        Authorize.jwt_required()
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token [UnAuthorized]")
 
+    current_user = Authorize.get_jwt_subject()
+    user = session.query(User).filter(User.username == current_user).first()
+    order = session.query(Order).filter(Order.id == order_id).first()
+
+    if order is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    
+    if user.is_staff:
+        # update order status
+        order.order_status = update_order.order_status
+        session.commit()
+    
+        response = {
+            "order_id": order.id,
+            "quantity": order.quantity,
+            "order_status": order.order_status.code,
+            "pizza_size": order.pizza_size.code,
+            "user_id": order.user_id
+        }
+        return jsonable_encoder(response)
+    
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You don't have permission to update status")
 
